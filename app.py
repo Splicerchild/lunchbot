@@ -1,31 +1,35 @@
 from flask import Flask, request, jsonify
 import re
 import json
-from restaurantHelpers import alreadyAdded, addRestaurant, readFromFile, saveToFile, incrementWeights, removePriority, removeRestaurant, getRestaurantList
-from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting
+from restaurantHelpers import alreadyAdded, addRestaurant, readRestaurantsFromFile, saveToFile, incrementWeights, removePriority, removeRestaurant, getRestaurantList
+from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting, displayUserVotes
+from userHelpers import registerUserToList, getUserInfo, readUsersFromFile, isValidUser
 app = Flask(__name__)
 
-lunchBotToken = '49yjehss5igi8dms95idouncge'
-votingSecret = "lunchbotrules"
-channel = '39zakunmtfyr9posni4nukj3sy'
+lunchBotToken = ''
+votingSecret = ""
+channel = ''
+testingChanel = ''
 inPoll = False
 
 @app.before_first_request
 def startup():
-    readFromFile()
+    readRestaurantsFromFile()
+    readUsersFromFile()
 
 @app.route("/lunchbot", methods=["POST"])
 def lunchbot():
-    global channel, lunchBotToken
+    global channel, lunchBotToken, testingChanel
     req = request.form
-    if(lunchBotToken == req.get('token') and channel == req.get('channel_id')):
+    if(lunchBotToken == req.get('token') and testingChanel == req.get('channel_id') or channel == req.get('channel_id')):
         command = req.get('text')
         if re.match("add (.+)", command):
             return app.response_class(response=addFood(command[4:]), status=200, mimetype="application/json")
+        elif re.match("register", command):
+            return app.response_class(response=registerUser(), status=200, mimetype="application/json")
         elif re.match("poll", command):
             return app.response_class(response=gimmeLunch(), status=200, mimetype="application/json")
         elif re.match("list", command):
-            print(listRestaurants())
             return app.response_class(response=listRestaurants(), status=200, mimetype="application/json")
         elif re.match("close", command):
             return app.response_class(response=endPoll(), status=200, mimetype="application/json")
@@ -39,15 +43,23 @@ def lunchbot():
             print(listHelp())
             return app.response_class(response=listHelp(), status=200, mimetype="application/json")
         else:
-            resp = wrapResponse().format(response_type="ephemeral",data='"type \\"/lunch help\\" for help."')
+            resp = wrapResponse().format(response_type="ephemeral",data='"type ``/lunch help`` for help."')
             return app.response_class(response=resp, status=200, mimetype="application/json")
     else:
         resp = wrapResponse().format(response_type="ephemeral",data='"Forbidden"')
         return app.response_class(response=resp, status=200, mimetype="application/json")
 
+def registerUser():
+    userInfo = getUserInfo(request)
+    registerUserToList(userInfo)
+    return wrapResponse().format(response_type="ephemeral", data='"You have been successfully registered as {0}"'.format(userInfo['name']))
+
 def gimmeLunch():
     global inPoll
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         if(not inPoll):
             inPoll = True
             incrementPollID()
@@ -62,6 +74,9 @@ def gimmeLunch():
 
 def listRestaurants():
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         test = '"|hi|there|\\n|:-|:-|\\n|1|2|"'
         return wrapResponse().format(response_type="in_channel", data=getRestaurantList())
     except Exception as e:
@@ -70,6 +85,9 @@ def listRestaurants():
 
 def addFood(restaurant):
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         newRestaurant = re.match("[a-zA-Z0-9'&]+", restaurant).string
         if(not alreadyAdded(newRestaurant)):
             addRestaurant(newRestaurant)
@@ -80,6 +98,9 @@ def addFood(restaurant):
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to add eatery. Try again later."')
 
 def getVotes():
+    userInfo = getUserInfo(request)
+    if(not isValidUser(userInfo)):
+        return pleaseRegister()
     if(inPoll):
         return grabVoting()
     else:
@@ -87,18 +108,25 @@ def getVotes():
 
 def endPoll():
     global inPoll
+    userInfo = getUserInfo(request)
+    if(not isValidUser(userInfo)):
+        return pleaseRegister()
     try:
         pollResults = displayVotes()
+        userChoices = displayUserVotes()
         winner = endPollHelper()
-        removePriority(winner)
         incrementWeights()
+        removePriority(winner)
         inPoll = False
-        return wrapResponse().format(response_type="in_channel", data='"Lunch is at: {place}\\n\\n{poll}"'.format(place=winner, poll=pollResults))
-    except:
+        return wrapResponse().format(response_type="in_channel", data='"Lunch is at: {place}\\n\\n{poll}\\n\\n{users}"'.format(place=winner, poll=pollResults, users=userChoices))
+    except Exception as e:
+        print(e)
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to modify weighting. Try again later."')
 
-
 def resetRestaurant(rest):
+    userInfo = getUserInfo(request)
+    if(not isValidUser(userInfo)):
+        return pleaseRegister()
     try:
         restaurant = re.match("[a-zA-Z0-9']+", rest).string
         removePriority(restaurant)
@@ -108,6 +136,9 @@ def resetRestaurant(rest):
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to modify weighting. Try again later."')
 
 def removeFood(rest):
+    userInfo = getUserInfo(request)
+    if(not isValidUser(userInfo)):
+        return pleaseRegister()
     try:
         restaurant = re.match("[a-zA-Z0-9']+", rest).string
         success = removeRestaurant(restaurant)
@@ -120,18 +151,23 @@ def removeFood(rest):
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to remove eatery. Try again later."')
 
 def listHelp():
-    helpText = '''"Commands: add restaurant | poll | vote | list | close | reset restaurant | remove restaurant | help"'''
+    helpText = '''"Commands: register | add (restaurant) | poll | vote | list | close | reset (restaurant) | remove (restaurant) | help"'''
     return wrapResponse().format(response_type="ephemeral", data=helpText)
 
 @app.route("/lunchbot/vote", methods=["POST"])
 def vote():
     global votingSecret
+    userInfo = {"id":request.get_json().get('user_id')}
+    if(not isValidUser(userInfo)):
+        return app.response_class(response='{{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}}', status=200, mimetype="application/json")
     if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID')))):
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
         return app.response_class(response='{{"ephemeral_text": "Your vote for {0} has been updated!"}}'.format(request.get_json().get('context').get('choice')), status=200, mimetype="application/json")
     else:
       return app.response_class(response='{"ephemeral_text": "This poll has closed. Please check to see if there is a newer poll"}', status=200, mimetype="application/json")
 
+def pleaseRegister():
+    return wrapResponse().format(response_type="ephemeral", data='"Please use ``/lunch regiser (username)`` before participating in the lunch polls"')
 
 def wrapResponse():
     return '{{"response_type":"{response_type}", "username":"LunchBot", "icon_url":"https://static-cdn.jtvnw.net/emoticons/v1/1771885/3.0", "text": {data}}}'

@@ -60,7 +60,7 @@ def getRestaurantList():
     table += '\\n"'
     return table
 
-def readFromFile():
+def readRestaurantsFromFile():
     global restaurants, saveFile
     try:
         file = open(saveFile, 'r')

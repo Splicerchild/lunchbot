@@ -1,26 +1,28 @@
 from restaurantHelpers import chooseRandomRestaurant
+from userHelpers import getUsername
+import json
 
 choices = []
 votes = {}
 currentPollID = 0
 
 def grabPoll():
-    global choices
     selectChoices()
     return grabVoting()
 
 def grabVoting():
-    global choicespoll, currentPollID
+    global choices, currentPollID
     poll = displayVotes()
     return wrapWithButtons().format(poll=poll, choiceA=choices[0], choiceA2=choices[0], choiceB=choices[1], choiceB2=choices[1], choiceC=choices[2], choiceC2=choices[2], pollID=currentPollID)
 
 def addVote(user, vote):
     global votes
-    votes[user] = vote
+    votingTuple = {"vote":vote, "username": getUsername(user)}
+    votes[user] = votingTuple
 
 def resetVotes():
     global votes
-    votes = {}
+    votes.clear()
 
 def resetChoices():
     global choices
@@ -29,8 +31,8 @@ def resetChoices():
 def getWinner():
     global votes, choices
     tallies = [0, 0, 0]
-    for user in votes.keys():
-        tallies[choices.index(votes[user])] += 1
+    for user in votes:
+        tallies[choices.index(votes[user]["vote"])] += 1
     if(tallies[0] > tallies[1]):
         if(tallies[0] > tallies[2]):
             return choices[0]
@@ -54,10 +56,16 @@ def selectChoices():
 def displayVotes():
     global votes, choices
     tallies = [0,0,0]
-    for user in votes.keys():
-        tallies[choices.index(votes[user])] += 1
+    for user in votes:
+        tallies[choices.index(votes[user]["vote"])] += 1
     return "|Restaurant|Votes|\\n|:-|:-|\\n|{place1}|{vote1}|\\n|{place2}|{vote2}|\\n|{place3}|{vote3}|".format(place1=choices[0], vote1=tallies[0], place2=choices[1], vote2=tallies[1], place3=choices[2], vote3=tallies[2])
 
+def displayUserVotes():
+    global votes
+    pollBody = ""
+    for user in votes:
+        pollBody += "|{name}|{place}|\\n".format(name=votes[user]["username"], place=votes[user]["vote"])
+    return "|Restaurant|Votes|\\n|:-|:-|\\n{body}".format(body=pollBody)
 
 def endPollHelper():
     winner = getWinner()
