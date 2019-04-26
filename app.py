@@ -6,10 +6,10 @@ from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPol
 from userHelpers import registerUserToList, getUserInfo, readUsersFromFile, isValidUser
 app = Flask(__name__)
 
-lunchBotToken = ''
-votingSecret = ""
-channel = ''
-testingChanel = ''
+lunchBotToken = '49yjehss5igi8dms95idouncge'
+votingSecret = "lunchbotrules"
+channel = '39zakunmtfyr9posni4nukj3sy'
+testingChanel = 'ziapciuycb873jy58kdqozh55y'
 inPoll = False
 
 @app.before_first_request
@@ -159,7 +159,7 @@ def vote():
     global votingSecret
     userInfo = {"id":request.get_json().get('user_id')}
     if(not isValidUser(userInfo)):
-        return app.response_class(response='{{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}}', status=200, mimetype="application/json")
+        return app.response_class(response='{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}', status=200, mimetype="application/json")
     if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID')))):
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
         return app.response_class(response='{{"ephemeral_text": "Your vote for {0} has been updated!"}}'.format(request.get_json().get('context').get('choice')), status=200, mimetype="application/json")

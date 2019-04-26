@@ -65,7 +65,7 @@ def displayUserVotes():
     pollBody = ""
     for user in votes:
         pollBody += "|{name}|{place}|\\n".format(name=votes[user]["username"], place=votes[user]["vote"])
-    return "|Restaurant|Votes|\\n|:-|:-|\\n{body}".format(body=pollBody)
+    return "|User|Vote|\\n|:-|:-|\\n{body}".format(body=pollBody)
 
 def endPollHelper():
     winner = getWinner()
