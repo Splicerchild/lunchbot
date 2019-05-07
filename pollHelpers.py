@@ -1,6 +1,8 @@
 from restaurantHelpers import chooseRandomRestaurant
 from userHelpers import getUsername
+from uuid import uuid4
 import json
+
 
 choices = []
 votes = {}
@@ -75,7 +77,7 @@ def endPollHelper():
 
 def incrementPollID():
     global currentPollID
-    currentPollID += 1
+    currentPollID = uuid4().int
 
 def checkPollID(pollID):
     global currentPollID
