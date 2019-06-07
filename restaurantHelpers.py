@@ -46,7 +46,7 @@ def chooseRandomRestaurant():
     total = 0
     for i in range(len(restaurants)):
         if(choice < restaurants[i]['weight']):
-            return restaurants[i]['name']
+            return restaurants[i]
         else:
             choice -= restaurants[i]['weight']
     return "No Where"

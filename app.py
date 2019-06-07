@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import re
 import json
 from restaurantHelpers import alreadyAdded, addRestaurant, readRestaurantsFromFile, saveToFile, incrementWeights, removePriority, removeRestaurant, getRestaurantList
-from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting, displayUserVotes
+from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting, displayUserVotes, resetPollHelper, killPollHelper
 from userHelpers import registerUserToList, getUserInfo, readUsersFromFile, isValidUser
 app = Flask(__name__)
 
@@ -39,6 +39,10 @@ def lunchbot():
             return app.response_class(response=resetRestaurant(command[6:]), status=200, mimetype="application/json")
         elif re.match("remove (.+)", command):
             return app.response_class(response=removeFood(command[7:]), status=200, mimetype="application/json")
+        elif re.match("reroll", command):
+            return app.response_class(response=resetPoll(), status=200, mimetype="application/json")
+        elif re.match("kill", command):
+            return app.response_class(response=killPoll(), status=200, mimetype="application/json")
         elif re.match("help", command):
             print(listHelp())
             return app.response_class(response=listHelp(), status=200, mimetype="application/json")
@@ -71,6 +75,21 @@ def gimmeLunch():
     except Exception as e:
         inPoll = False
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to select a lunch place. Looks like you\'re on your own kid!. {error}"'.format(error=e))
+
+def killPoll():
+    global inPoll
+    try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
+        if(inPoll):
+            inPoll = False
+            killPollHelper()
+            return wrapResponse().format(response_type="in_channel", data='"{} has killed the poll. Brutal..."'.format(userInfo['name']))
+        else:
+            return wrapResponse().format(response_type="ephemeral", data='"We are not currently in a poll."')
+    except Exception as e:
+        return wrapResponse().format(response_type="ephemeral", data='"Error, failed to kill poll. Yell at the admin to fix it."')
 
 def listRestaurants():
     try:
@@ -108,10 +127,10 @@ def getVotes():
 
 def endPoll():
     global inPoll
-    userInfo = getUserInfo(request)
-    if(not isValidUser(userInfo)):
-        return pleaseRegister()
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         pollResults = displayVotes()
         userChoices = displayUserVotes()
         winner = endPollHelper()
@@ -124,10 +143,10 @@ def endPoll():
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to modify weighting. Try again later."')
 
 def resetRestaurant(rest):
-    userInfo = getUserInfo(request)
-    if(not isValidUser(userInfo)):
-        return pleaseRegister()
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         restaurant = re.match("[a-zA-Z0-9']+", rest).string
         removePriority(restaurant)
         return wrapResponse().format(response_type="in_channel", data='"Weight reset for {0}. Hope it was good!"'.format(restaurant))
@@ -136,10 +155,10 @@ def resetRestaurant(rest):
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to modify weighting. Try again later."')
 
 def removeFood(rest):
-    userInfo = getUserInfo(request)
-    if(not isValidUser(userInfo)):
-        return pleaseRegister()
     try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
         restaurant = re.match("[a-zA-Z0-9']+", rest).string
         success = removeRestaurant(restaurant)
         if(success):
@@ -150,8 +169,23 @@ def removeFood(rest):
         print(e)
         return wrapResponse().format(response_type="ephemeral", data='"Error, failed to remove eatery. Try again later."')
 
+def resetPoll():
+    global inPoll
+    try:
+        userInfo = getUserInfo(request)
+        if(not isValidUser(userInfo)):
+            return pleaseRegister()
+        if(inPoll):
+          incrementPollID()
+          return resetPollHelper(userInfo['name'])
+        else:
+          return wrapResponse().format(response_type="ephemeral", data='"We are not currently in a poll."')
+    except Exception as e:
+        print(e)
+        return wrapResponse().format(response_type="ephemeral", data='"Error, failed to remove eatery. Try again later."')
+
 def listHelp():
-    helpText = '''"Commands: register | add (restaurant) | poll | vote | list | close | reset (restaurant) | remove (restaurant) | help"'''
+    helpText = '''"Commands: register | add (restaurant) | poll | vote | list | close | reset (restaurant) | remove (restaurant) | reroll | kill | help"'''
     return wrapResponse().format(response_type="ephemeral", data=helpText)
 
 @app.route("/lunchbot/vote", methods=["POST"])
@@ -159,7 +193,7 @@ def vote():
     global votingSecret
     userInfo = {"id":request.get_json().get('user_id')}
     if(not isValidUser(userInfo)):
-        return app.response_class(response='{{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}}', status=200, mimetype="application/json")
+        return app.response_class(response='{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}', status=200, mimetype="application/json")
     if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID')))):
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
         return app.response_class(response='{{"ephemeral_text": "Your vote for {0} has been updated!"}}'.format(request.get_json().get('context').get('choice')), status=200, mimetype="application/json")

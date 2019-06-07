@@ -1,19 +1,22 @@
 from restaurantHelpers import chooseRandomRestaurant
 from userHelpers import getUsername
+from uuid import uuid4
 import json
 
+
 choices = []
+weights = []
 votes = {}
 currentPollID = 0
 
-def grabPoll():
+def grabPoll(pretext=''):
     selectChoices()
-    return grabVoting()
+    return grabVoting(pretext)
 
-def grabVoting():
+def grabVoting(pretext=''):
     global choices, currentPollID
     poll = displayVotes()
-    return wrapWithButtons().format(poll=poll, choiceA=choices[0], choiceA2=choices[0], choiceB=choices[1], choiceB2=choices[1], choiceC=choices[2], choiceC2=choices[2], pollID=currentPollID)
+    return wrapWithButtons().format(poll=poll, choiceA=choices[0], choiceA2=choices[0], choiceB=choices[1], choiceB2=choices[1], choiceC=choices[2], choiceC2=choices[2], pollID=currentPollID, pretext=pretext)
 
 def addVote(user, vote):
     global votes
@@ -25,33 +28,34 @@ def resetVotes():
     votes.clear()
 
 def resetChoices():
-    global choices
+    global choices, weights
     choices = []
+    weights = []
 
 def getWinner():
-    global votes, choices
+    global votes, choices, weights
     tallies = [0, 0, 0]
     for user in votes:
         tallies[choices.index(votes[user]["vote"])] += 1
     if(tallies[0] > tallies[1]):
-        if(tallies[0] > tallies[2]):
+        if(tallies[0] > tallies[2] and weights[0] > weights[2]):
             return choices[0]
         else:
             return choices[2]
-    elif(tallies[1] > tallies[2]):
+    elif(tallies[1] > tallies[2] and weights[1] > weights[2]):
         return choices[1]
     else:
         return choices[2]
 
-
 def selectChoices():
-    global choices
+    global choices, weights
     if(len(choices) > 1):
         return
     while (len(choices) < 3):
         choice = chooseRandomRestaurant()
-        if(choice not in choices):
-            choices.insert(0, choice)
+        if(choice['name'] not in choices):
+            choices.insert(0, choice['name'])
+            weights.insert(0, choice['weight'])
 
 def displayVotes():
     global votes, choices
@@ -65,7 +69,7 @@ def displayUserVotes():
     pollBody = ""
     for user in votes:
         pollBody += "|{name}|{place}|\\n".format(name=votes[user]["username"], place=votes[user]["vote"])
-    return "|Restaurant|Votes|\\n|:-|:-|\\n{body}".format(body=pollBody)
+    return "|User|Vote|\\n|:-|:-|\\n{body}".format(body=pollBody)
 
 def endPollHelper():
     winner = getWinner()
@@ -73,19 +77,29 @@ def endPollHelper():
     resetChoices()
     return winner
 
+def resetPollHelper(user):
+    resetVotes()
+    resetChoices()
+    return grabPoll('Poll reset by {}'.format(user))
+
 def incrementPollID():
     global currentPollID
-    currentPollID += 1
+    currentPollID = uuid4().int
 
 def checkPollID(pollID):
     global currentPollID
     return pollID == currentPollID
+
+def killPollHelper():
+    resetVotes()
+    resetChoices()
 
 def wrapWithButtons():
     return '''{{"response_type":"in_channel",
         "attachments":[
             {{
                 "text":"#### VOTE!\\n{poll}",
+                "pretext":"{pretext}",
                 "actions":[
                     {{
                         "name": "vote {choiceA}",
