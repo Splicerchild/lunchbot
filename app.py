@@ -6,10 +6,10 @@ from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPol
 from userHelpers import registerUserToList, getUserInfo, readUsersFromFile, isValidUser
 app = Flask(__name__)
 
-lunchBotToken = '49yjehss5igi8dms95idouncge'
-votingSecret = "lunchbotrules"
-channel = '39zakunmtfyr9posni4nukj3sy'
-testingChanel = 'ziapciuycb873jy58kdqozh55y'
+lunchBotToken = ''
+votingSecret = ""
+channel = ''
+testingChanel = ''
 inPoll = False
 
 @app.before_first_request
