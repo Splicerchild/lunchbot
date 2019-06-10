@@ -190,11 +190,11 @@ def listHelp():
 
 @app.route("/lunchbot/vote", methods=["POST"])
 def vote():
-    global votingSecret
+    global votingSecret, inPoll
     userInfo = {"id":request.get_json().get('user_id')}
     if(not isValidUser(userInfo)):
         return app.response_class(response='{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}', status=200, mimetype="application/json")
-    if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID')))):
+    if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID'))) and inPoll):
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
         return app.response_class(response='{{"ephemeral_text": "Your vote for {0} has been updated!"}}'.format(request.get_json().get('context').get('choice')), status=200, mimetype="application/json")
     else:
