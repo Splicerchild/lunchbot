@@ -38,11 +38,11 @@ def getWinner():
     for user in votes:
         tallies[choices.index(votes[user]["vote"])] += 1
     if(tallies[0] > tallies[1]):
-        if(tallies[0] > tallies[2] and weights[0] > weights[2]):
+        if(tallies[0] > tallies[2] or (tallies[0] == tallies[2] and  weights[0] > weights[2])):
             return choices[0]
         else:
             return choices[2]
-    elif(tallies[1] > tallies[2] and weights[1] > weights[2]):
+    elif(tallies[1] > tallies[2] or (tallies[1] == tallies[2] and weights[1] > weights[2])):
         return choices[1]
     else:
         return choices[2]
