@@ -23,6 +23,10 @@ def addVote(user, vote):
     votingTuple = {"vote":vote, "username": getUsername(user)}
     votes[user] = votingTuple
 
+def removeVote(user):
+    global votes
+    votes.remove(user)
+
 def resetVotes():
     global votes
     votes.clear()
@@ -131,6 +135,18 @@ def wrapWithButtons():
                             "url":"http://localhost:5000/lunchbot/vote",
                             "context":{{
                                 "choice":"{choiceC2}",
+                                "secret":"lunchbotrules",
+                                "pollID":"{pollID}"
+                            }}
+                        }},
+                        "type":"button"
+                    }},
+                    {{
+                        "name": "remove vote",
+                        "integration":{{
+                            "url":"http://localhost:5000/lunchbot/vote",
+                            "context":{{
+                                "choice":"remove",
                                 "secret":"lunchbotrules",
                                 "pollID":"{pollID}"
                             }}

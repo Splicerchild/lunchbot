@@ -195,6 +195,9 @@ def vote():
     if(not isValidUser(userInfo)):
         return app.response_class(response='{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}', status=200, mimetype="application/json")
     if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID'))) and inPoll):
+        if(request.get_json().get('context').get('choice') == remove)
+            removeVote(request.get_json().get('user_id'))
+            return app.response_class(response='{"ephemeral_text": "Removed your vote from the poll"}', status=200, mimetype="application/json")
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
         return app.response_class(response='{{"ephemeral_text": "Your vote for {0} has been updated!"}}'.format(request.get_json().get('context').get('choice')), status=200, mimetype="application/json")
     else:
