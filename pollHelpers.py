@@ -25,7 +25,7 @@ def addVote(user, vote):
 
 def removeVote(user):
     global votes
-    votes.remove(user)
+    votes.pop(user)
 
 def resetVotes():
     global votes
@@ -106,7 +106,7 @@ def wrapWithButtons():
                 "pretext":"{pretext}",
                 "actions":[
                     {{
-                        "name": "vote {choiceA}",
+                        "name": "Vote {choiceA}",
                         "integration":{{
                             "url":"http://localhost:5000/lunchbot/vote",
                             "context":{{
@@ -118,7 +118,7 @@ def wrapWithButtons():
                         "type":"button"
                     }},
                     {{
-                        "name": "vote {choiceB}",
+                        "name": "Vote {choiceB}",
                         "integration":{{
                             "url":"http://localhost:5000/lunchbot/vote",
                             "context":{{
@@ -130,7 +130,7 @@ def wrapWithButtons():
                         "type":"button"
                     }},
                     {{
-                        "name": "vote {choiceC}",
+                        "name": "Vote {choiceC}",
                         "integration":{{
                             "url":"http://localhost:5000/lunchbot/vote",
                             "context":{{
@@ -142,7 +142,7 @@ def wrapWithButtons():
                         "type":"button"
                     }},
                     {{
-                        "name": "remove vote",
+                        "name": "Remove Vote",
                         "integration":{{
                             "url":"http://localhost:5000/lunchbot/vote",
                             "context":{{

@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import re
 import json
 from restaurantHelpers import alreadyAdded, addRestaurant, readRestaurantsFromFile, saveToFile, incrementWeights, removePriority, removeRestaurant, getRestaurantList
-from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting, displayUserVotes, resetPollHelper, killPollHelper
+from pollHelpers import addVote, grabPoll, endPollHelper, displayVotes, checkPollID, incrementPollID, grabVoting, displayUserVotes, resetPollHelper, killPollHelper, removeVote
 from userHelpers import registerUserToList, getUserInfo, readUsersFromFile, isValidUser
 app = Flask(__name__)
 
@@ -44,7 +44,6 @@ def lunchbot():
         elif re.match("kill", command):
             return app.response_class(response=killPoll(), status=200, mimetype="application/json")
         elif re.match("help", command):
-            print(listHelp())
             return app.response_class(response=listHelp(), status=200, mimetype="application/json")
         else:
             resp = wrapResponse().format(response_type="ephemeral",data='"type ``/lunch help`` for help."')
@@ -68,7 +67,6 @@ def gimmeLunch():
             inPoll = True
             incrementPollID()
             poll = grabPoll()
-            print(poll)
             return poll
         else:
             return wrapResponse().format(response_type="ephemeral", data='"Already deciding what is for lunch."')
@@ -195,7 +193,7 @@ def vote():
     if(not isValidUser(userInfo)):
         return app.response_class(response='{"ephemeral_text": "Please use ``/lunch regiser (username)`` before participating in the lunch polls"}', status=200, mimetype="application/json")
     if(votingSecret == request.get_json().get('context').get('secret') and checkPollID(int(request.get_json().get('context').get('pollID'))) and inPoll):
-        if(request.get_json().get('context').get('choice') == remove)
+        if(request.get_json().get('context').get('choice') == 'remove'):
             removeVote(request.get_json().get('user_id'))
             return app.response_class(response='{"ephemeral_text": "Removed your vote from the poll"}', status=200, mimetype="application/json")
         addVote(request.get_json().get('user_id'), request.get_json().get('context').get('choice'))
